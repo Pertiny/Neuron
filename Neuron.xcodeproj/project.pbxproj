@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		09FDC44E2DAEAA230087E85F /* OpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = 09FDC44D2DAEAA230087E85F /* OpenAI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		09FDC4282DAEA80F0087E85F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				09FDC44E2DAEAA230087E85F /* OpenAI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = Neuron;
 			packageProductDependencies = (
+				09FDC44D2DAEAA230087E85F /* OpenAI */,
 			);
 			productName = Neuron;
 			productReference = 09FDC41A2DAEA80E0087E85F /* Neuron.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = 09FDC4112DAEA80E0087E85F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				09FDC44C2DAEAA230087E85F /* XCRemoteSwiftPackageReference "OpenAI" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 09FDC41B2DAEA80E0087E85F /* Products */;
 			projectDirPath = "";
@@ -558,6 +567,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		09FDC44C2DAEAA230087E85F /* XCRemoteSwiftPackageReference "OpenAI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/MacPaw/OpenAI";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.4.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		09FDC44D2DAEAA230087E85F /* OpenAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09FDC44C2DAEAA230087E85F /* XCRemoteSwiftPackageReference "OpenAI" */;
+			productName = OpenAI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 09FDC4122DAEA80E0087E85F /* Project object */;
 }
