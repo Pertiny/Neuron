@@ -1,5 +1,71 @@
-DerivedData/
+# Xcode
 *.xcuserstate
-*.xcworkspace
+*.xccheckout
+*.xcscmblueprint
 *.xcodeproj/project.xcworkspace/
-*.DS_Store
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# Build artifacts
+DerivedData/
+build/
+
+# SwiftPM
+.swiftpm/
+Package.resolved
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/screenshots
+fastlane/test_output
+
+# User settings
+*.xcuserdata/
+*.xcuserstate
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+
+# JetBrains IDEs
+.idea/
+
+# Xcode automatic backup files
+*.moved-aside
+
+# Playground stuff
+timeline.xctimeline
+playground.xcworkspace
+
+# SwiftLint / Logs / Cache
+*.log
+.swiftlint.yml
+.cache/
+
+# Embedded repos (z. B. versehentlich per add . reingezogen)
+.cache/openai-python/
+.oh-my-zsh/
+
+# Terminal junk
+*.swp
+*.swo
