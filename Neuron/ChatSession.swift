@@ -1,21 +1,22 @@
 import Foundation
 
-struct ChatSession: Identifiable, Codable {
+struct ChatSession: Identifiable, Codable, Equatable {
     let id: UUID
-    let date: Date
-    let title: String
-    let messages: [ChatMessageSimple]
-    
-    var isArchived: Bool = false
-    var folder: String? = nil
-    
-    init(id: UUID = UUID(),
-         date: Date = Date(),
-         title: String,
-         messages: [ChatMessageSimple],
-         isArchived: Bool = false,
-         folder: String? = nil) {
-        
+    var date: Date
+    var title: String
+    var messages: [ChatMessageSimple]
+
+    var isArchived: Bool
+    var folder: String? // z. B. „Projekt X“ oder „Papierkorb“
+
+    init(
+        id: UUID = UUID(),
+        date: Date = Date(),
+        title: String,
+        messages: [ChatMessageSimple],
+        isArchived: Bool = false,
+        folder: String? = nil
+    ) {
         self.id = id
         self.date = date
         self.title = title
@@ -25,7 +26,7 @@ struct ChatSession: Identifiable, Codable {
     }
 }
 
-struct ChatMessageSimple: Codable {
-    let role: String // z. B. "user" oder "assistant"
+struct ChatMessageSimple: Codable, Equatable {
+    let role: String // "user" oder "assistant"
     let content: String
 }

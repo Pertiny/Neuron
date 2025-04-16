@@ -5,8 +5,9 @@ struct NeuronApp: App {
     var body: some Scene {
         WindowGroup {
             NavigationView {
-                StartView()
+                LaunchRouterView()
             }
+            .fixedToolbarStyle() // ⬅️ globaler Toolbar-Stil
             .font(.system(size: 16, weight: .regular, design: .monospaced))
             .preferredColorScheme(.dark)
         }

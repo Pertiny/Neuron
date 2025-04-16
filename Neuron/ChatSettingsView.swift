@@ -3,7 +3,6 @@ import SwiftUI
 struct ChatSettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
-    // Aktuelle Settings
     @AppStorage("apiKey") private var apiKey: String = ""
     @AppStorage("openAIOrgID") private var openAIOrgID: String = ""
     @AppStorage("chatModel") private var chatModel: String = "gpt-3.5-turbo"
@@ -17,10 +16,10 @@ struct ChatSettingsView: View {
 
     @State private var availableModels: [String] = []
     @StateObject private var apiManager = APIManager()
-
     @State private var showTemplateSheet = false
     @State private var savedTemplates: [ChatTemplate] = []
     @State private var newTemplateName: String = ""
+    @State private var showingInfo: [String: Bool] = [:]
 
     private let fallbackModels = [
         "gpt-3.5-turbo", "gpt-3.5-turbo-16k",
@@ -45,10 +44,7 @@ struct ChatSettingsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    // Modellwahl
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Modell")
-                            .foregroundColor(.white)
+                    settingBlock(title: "Modell", infoKey: "chatModel", info: "Welches Sprachmodell verwendet wird.") {
                         if availableModels.isEmpty {
                             ProgressView("Lade Modelle ...").foregroundColor(.white)
                         } else {
@@ -62,10 +58,7 @@ struct ChatSettingsView: View {
                         }
                     }
 
-                    // Org-ID
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Organisation-ID")
-                            .foregroundColor(.white)
+                    settingBlock(title: "Organisation-ID", infoKey: "orgID", info: "Deine OpenAI Organisation (optional).") {
                         TextField("org-...", text: $openAIOrgID)
                             .foregroundColor(.white)
                             .padding(10)
@@ -73,27 +66,61 @@ struct ChatSettingsView: View {
                             .cornerRadius(6)
                     }
 
-                    // Schieberegler
-                    sliderInt(title: "Max Tokens", value: $chatMaxTokens, range: 100...4096, step: 100)
-                    sliderDouble(title: "Temperature", value: $chatTemperature, range: 0...1, step: 0.01)
-                    sliderDouble(title: "Top P", value: $chatTopP, range: 0...1, step: 0.05)
-                    sliderDouble(title: "Presence Penalty", value: $chatPresencePenalty, range: 0...2, step: 0.1)
-                    sliderDouble(title: "Frequency Penalty", value: $chatFrequencyPenalty, range: 0...2, step: 0.1)
+                    settingSliderInt(
+                        title: "Max Tokens",
+                        value: $chatMaxTokens,
+                        range: 100...4096,
+                        step: 100,
+                        key: "chatMaxTokens",
+                        info: "Maximale Länge der Antwort in Tokens."
+                    )
 
-                    // System-Prompt
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("System Prompt")
-                            .foregroundColor(.white)
+                    settingSliderDouble(
+                        title: "Temperature",
+                        value: $chatTemperature,
+                        range: 0...1,
+                        step: 0.01,
+                        key: "chatTemperature",
+                        info: "Steuert die Zufälligkeit. Höher = kreativer, niedriger = präziser."
+                    )
+
+                    settingSliderDouble(
+                        title: "Top P",
+                        value: $chatTopP,
+                        range: 0...1,
+                        step: 0.05,
+                        key: "chatTopP",
+                        info: "Alternativer Zufallswert zu Temperature. Nur einer sollte hoch sein."
+                    )
+
+                    settingSliderDouble(
+                        title: "Presence Penalty",
+                        value: $chatPresencePenalty,
+                        range: 0...2,
+                        step: 0.1,
+                        key: "chatPresencePenalty",
+                        info: "Bestrafung für Wiederholungen – fördert neue Inhalte."
+                    )
+
+                    settingSliderDouble(
+                        title: "Frequency Penalty",
+                        value: $chatFrequencyPenalty,
+                        range: 0...2,
+                        step: 0.1,
+                        key: "chatFrequencyPenalty",
+                        info: "Verhindert Wiederholungen einzelner Wörter."
+                    )
+
+                    settingBlock(title: "System Prompt", infoKey: "systemPrompt", info: "Startanweisung für den Assistenten.") {
                         TextEditor(text: $chatInitialPrompt)
                             .foregroundColor(.white)
-                            .font(.system(size: 14, weight: .regular, design: .monospaced))
+                            .font(.system(size: 14, design: .monospaced))
                             .padding(8)
                             .background(Color.gray.opacity(0.2))
                             .cornerRadius(6)
                             .frame(minHeight: 100)
                     }
 
-                    // Farbe
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Farbe deiner Nachrichten")
                             .foregroundColor(.white)
@@ -111,7 +138,7 @@ struct ChatSettingsView: View {
                 .padding(.top, 16)
             }
         }
-        .background(Color.black.edgesIgnoringSafeArea(.all))
+        .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .onAppear {
             fetchModels()
@@ -122,7 +149,57 @@ struct ChatSettingsView: View {
         }
     }
 
+    // MARK: - UI Hilfsmittel
+
+    @ViewBuilder
+    private func settingBlock<Content: View>(title: String, infoKey: String, info: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text(title).foregroundColor(.white)
+                Button {
+                    showingInfo[infoKey] = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.gray)
+                }
+                .popover(isPresented: Binding(get: {
+                    showingInfo[infoKey] ?? false
+                }, set: {
+                    showingInfo[infoKey] = $0
+                })) {
+                    Text(info)
+                        .font(.system(size: 14, design: .monospaced))
+                        .padding()
+                        .frame(width: 250)
+                }
+            }
+            content()
+        }
+    }
+
+    private func settingSliderDouble(title: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double, key: String, info: String) -> some View {
+        settingBlock(title: title, infoKey: key, info: info) {
+            NoThumbSlider(value: value, range: range, step: step)
+                .frame(height: 16)
+        }
+    }
+
+    private func settingSliderInt(title: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int, key: String, info: String) -> some View {
+        settingBlock(title: title, infoKey: key, info: info) {
+            NoThumbSlider(
+                value: Binding(
+                    get: { Double(value.wrappedValue) },
+                    set: { value.wrappedValue = Int(round($0 / Double(step)) * Double(step)) }
+                ),
+                range: Double(range.lowerBound)...Double(range.upperBound),
+                step: Double(step)
+            )
+            .frame(height: 16)
+        }
+    }
+
     // MARK: - Template Sheet
+
     private var templateSheet: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -178,35 +255,7 @@ struct ChatSettingsView: View {
         .preferredColorScheme(.dark)
     }
 
-    // MARK: - Slider Helpers
-
-    private func sliderDouble(title: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("\(title): \(String(format: "%.2f", value.wrappedValue))")
-                .foregroundColor(.white)
-            NoThumbSlider(value: value, range: range, step: step)
-                .frame(height: 16)
-        }
-    }
-
-    private func sliderInt(title: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("\(title): \(value.wrappedValue)")
-                .foregroundColor(.white)
-
-            NoThumbSlider(
-                value: Binding(
-                    get: { Double(value.wrappedValue) },
-                    set: { value.wrappedValue = Int(round($0 / Double(step)) * Double(step)) }
-                ),
-                range: Double(range.lowerBound)...Double(range.upperBound),
-                step: Double(step)
-            )
-            .frame(height: 16)
-        }
-    }
-
-    // MARK: - Template Handling
+    // MARK: - Datenhandling
 
     private func applyTemplate(_ template: ChatTemplate) {
         chatModel = template.model

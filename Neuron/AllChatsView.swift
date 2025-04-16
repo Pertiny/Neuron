@@ -17,32 +17,58 @@ struct AllChatsView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            BackHeaderView(title: filterFolder ?? "All Chats") {
-                dismiss()
-            }
-
+        NavigationView {
             List {
                 ForEach(filteredChats) { chat in
                     NavigationLink(destination: ChatView(loadedSession: chat)) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(chat.title)
-                                .font(.system(size: 18, weight: .semibold, design: .monospaced))
+                                .font(.system(size: 16, weight: .semibold, design: .monospaced))
                                 .foregroundColor(.white)
-                                .frame(maxWidth: chat.title.count < 15 ? .infinity : 300, alignment: .leading)
-                            Text(chat.date, style: .date)
-                                .font(.system(size: 14, design: .monospaced))
-                                .foregroundColor(.gray)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+
+                            HStack {
+                                Text(chat.date.formatted(date: .abbreviated, time: .omitted))
+                                Spacer()
+                                Text(chat.date.formatted(date: .omitted, time: .shortened))
+                            }
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundColor(.gray)
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 6)
                     }
                 }
                 .onDelete(perform: deleteChats)
             }
             .listStyle(PlainListStyle())
             .background(Color.black)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
+
+                ToolbarItem(placement: .principal) {
+                    Text(filterFolder ?? "All Chats")
+                        .font(.system(size: 16, weight: .medium, design: .monospaced))
+                        .foregroundColor(.gray)
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EditButton()
+                        .foregroundColor(.white)
+                }
+            }
         }
-        .background(Color.black.edgesIgnoringSafeArea(.all))
+        .navigationViewStyle(.stack)
+        .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .onAppear {
             chats = storage.loadChats()
@@ -54,6 +80,8 @@ struct AllChatsView: View {
             let chat = filteredChats[index]
             storage.deleteChat(id: chat.id)
         }
-        chats.remove(atOffsets: offsets)
+        chats.removeAll { chat in
+            offsets.contains { index in chat.id == filteredChats[index].id }
+        }
     }
 }

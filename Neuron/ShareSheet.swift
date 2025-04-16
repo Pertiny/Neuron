@@ -2,11 +2,16 @@ import SwiftUI
 import UIKit
 
 struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
+    var items: [Any]
+    var activities: [UIActivity]? = nil
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: activities)
+        controller.excludedActivityTypes = [.assignToContact, .addToReadingList]
+        return controller
     }
 
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+        // Nichts zu aktualisieren
+    }
 }
