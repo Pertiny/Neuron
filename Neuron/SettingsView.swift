@@ -1,187 +1,168 @@
 import SwiftUI
 
-// MARK: - SettingsView mit eigenem "<" Back-Button
-
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("apiKey") private var storedAPIKey: String = ""
-    
-    @State private var tempAPIKey: String = ""
-    @State private var showAlert = false
-    
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("language") private var language: String = "Deutsch"
+    @AppStorage("appTheme") private var selectedTheme: AppTheme = .classic
+
+    @State private var tempAPIKey: String = ""
+    @State private var showAlert = false
+
     private let languages = ["Deutsch", "English", "Français", "Español"]
-    
+
     var body: some View {
+        let currentTheme = selectedTheme
+
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
-            
-            Form {
-                Section(header: Text("API-Einstellungen")
+            currentTheme.backgroundColor.edgesIgnoringSafeArea(.all)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 32) {
+
+                    // MARK: Header
+                    HStack {
+                        Button(action: { dismiss() }) {
+                            Text("<")
+                                .font(.system(size: 24, weight: .bold, design: .monospaced))
+                                .foregroundColor(currentTheme.primaryText)
+                        }
+                        Spacer()
+                        Text("Einstellungen")
                             .font(.system(size: 20, weight: .bold, design: .monospaced))
-                            .foregroundColor(.white)) {
-                    VStack(alignment: .leading, spacing: 8) {
+                            .foregroundColor(currentTheme.primaryText)
+                        Spacer().frame(width: 24)
+                    }
+                    .padding(.horizontal)
+
+                    // MARK: API-Key
+                    VStack(alignment: .leading, spacing: 12) {
                         Text("API-Key")
-                            .foregroundColor(.white)
-                            .fontWeight(.semibold)
-                        
+                            .foregroundColor(currentTheme.primaryText)
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+
                         TextField("Trage hier deinen OpenAI-Key ein", text: $tempAPIKey)
-                            .textFieldStyle(PlainTextFieldStyle())
+                            .font(.system(size: 14, design: .monospaced))
                             .foregroundColor(.white)
-                            .padding(8)
+                            .padding(12)
                             .background(Color.gray.opacity(0.2))
                             .cornerRadius(8)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.gray.opacity(0.6), lineWidth: 1)
-                            )
                             .onAppear {
                                 tempAPIKey = storedAPIKey
                             }
-                    }
-                    
-                    HStack(spacing: 16) {
-                        Button(action: {
-                            if tempAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                showAlert = true
-                            } else {
-                                storedAPIKey = tempAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-                                dismiss()
+
+                        HStack {
+                            Button("Speichern") {
+                                if tempAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    showAlert = true
+                                } else {
+                                    storedAPIKey = tempAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    dismiss()
+                                }
                             }
-                        }) {
-                            Text("Speichern")
-                                .frame(maxWidth: .infinity)
+                            .foregroundColor(.black)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.white)
+                            .cornerRadius(8)
+
+                            Button("Löschen", role: .destructive) {
+                                tempAPIKey = ""
+                                storedAPIKey = ""
+                            }
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.red, lineWidth: 1)
+                            )
                         }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(tempAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        
-                        Button(role: .destructive, action: {
-                            tempAPIKey = ""
-                            storedAPIKey = ""
-                        }) {
-                            Text("Löschen")
-                                .frame(maxWidth: .infinity)
+                        .font(.system(size: 14, design: .monospaced))
+                    }
+                    .padding(.horizontal)
+
+                    // MARK: Erscheinungsbild
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Erscheinungsbild")
+                            .foregroundColor(currentTheme.primaryText)
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+
+                        Picker("Modus", selection: $appearanceMode) {
+                            ForEach(AppearanceMode.allCases, id: \.self) { mode in
+                                Text(mode.rawValue).tag(mode)
+                            }
                         }
-                        .buttonStyle(.bordered)
+                        .pickerStyle(.segmented)
+                        .tint(currentTheme.accentColor)
                     }
-                }
-                .listRowBackground(Color.black)
-                
-                Section(header: Text("Erscheinungsbild")
-                            .font(.system(size: 20, weight: .bold, design: .monospaced))
-                            .foregroundColor(.white)) {
-                    Picker("Modus", selection: $appearanceMode) {
-                        ForEach(AppearanceMode.allCases, id: \.self) { mode in
-                            Text(mode.rawValue).tag(mode)
+                    .padding(.horizontal)
+
+                    // MARK: Theme
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Theme")
+                            .foregroundColor(currentTheme.primaryText)
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+
+                        Picker("Theme", selection: $selectedTheme) {
+                            ForEach(AppTheme.allCases) { theme in
+                                Text(theme.rawValue).tag(theme)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .accentColor(currentTheme.accentColor)
+                    }
+                    .padding(.horizontal)
+
+                    // MARK: Sprache
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Sprache")
+                            .foregroundColor(currentTheme.primaryText)
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+
+                        Picker("Sprache", selection: $language) {
+                            ForEach(languages, id: \.self) { lang in
+                                Text(lang).tag(lang)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .accentColor(currentTheme.accentColor)
+                    }
+                    .padding(.horizontal)
+
+                    // MARK: Infos
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Infos")
+                            .foregroundColor(currentTheme.primaryText)
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+
+                        NavigationLink(destination: ComingSoonView(title: "Impressum")) {
+                            Text("Impressum")
+                        }
+                        NavigationLink(destination: ComingSoonView(title: "Datenschutz")) {
+                            Text("Datenschutz")
+                        }
+                        NavigationLink(destination: ComingSoonView(title: "Version")) {
+                            Text("Version")
+                        }
+                        NavigationLink(destination: KeyDebugView()) {
+                            Text("API-Key Debug")
                         }
                     }
-                    .pickerStyle(.segmented)
-                    .tint(.white)
+                    .padding(.horizontal)
+                    .foregroundColor(currentTheme.secondaryText)
+                    .font(.system(size: 14, design: .monospaced))
+
+                    Spacer(minLength: 32)
                 }
-                .listRowBackground(Color.black)
-                
-                Section(header: Text("Sprache")
-                            .font(.system(size: 20, weight: .bold, design: .monospaced))
-                            .foregroundColor(.white)) {
-                    Picker("Sprache", selection: $language) {
-                        ForEach(languages, id: \.self) { lang in
-                            Text(lang).tag(lang)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.white)
-                }
-                .listRowBackground(Color.black)
-                
-                Section(header: Text("Infos")
-                            .font(.system(size: 20, weight: .bold, design: .monospaced))
-                            .foregroundColor(.white)) {
-                    NavigationLink(destination: ComingSoonView(title: "Impressum")) {
-                        Text("Impressum")
-                    }
-                    NavigationLink(destination: ComingSoonView(title: "Datenschutz")) {
-                        Text("Datenschutz")
-                    }
-                    NavigationLink(destination: ComingSoonView(title: "Version")) {
-                        Text("Version")
-                    }
-                }
-                .listRowBackground(Color.black)
-            }
-            .scrollContentBackground(.hidden)
-            .background(Color.black)
-            .font(.system(size: 16, weight: .regular, design: .monospaced))
-            .preferredColorScheme(appearanceMode.colorScheme)
-            .navigationTitle("Einstellungen")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true) // nativen Back-Button ausblenden
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Text("<")
-                            .font(.system(size: 24, weight: .bold, design: .monospaced))
-                            .foregroundColor(.white)
-                            .padding(.leading, 8)
-                    }
-                }
-            }
-            .alert("API-Key fehlt", isPresented: $showAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text("Bitte gib einen gültigen API-Key ein, um die App nutzen zu können.")
+                .padding(.top, 16)
             }
         }
-    }
-}
-
-enum AppearanceMode: String, CaseIterable {
-    case light = "Hell"
-    case dark = "Dunkel"
-    case system = "System"
-    
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .light: return .light
-        case .dark: return .dark
-        case .system: return nil
-        }
-    }
-}
-
-// MARK: - ComingSoonView mit eigenem Back-Button
-
-struct ComingSoonView: View {
-    @Environment(\.dismiss) private var dismiss
-    let title: String
-    
-    var body: some View {
-        ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
-            Text("\(title) – Coming Soon")
-                .font(.system(size: 24, weight: .bold, design: .monospaced))
-                .foregroundColor(.white)
-        }
-        .navigationBarBackButtonHidden(true) // nativen Back-Button ausblenden
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: {
-                    dismiss()
-                }) {
-                    Text("<")
-                        .font(.system(size: 24, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white)
-                        .padding(.leading, 8)
-                }
-            }
-            ToolbarItem(placement: .principal) {
-                Text(title)
-                    .foregroundColor(.white)
-                    .font(.system(size: 20, weight: .bold, design: .monospaced))
-            }
+        .preferredColorScheme(appearanceMode.colorScheme)
+        .alert("API-Key fehlt", isPresented: $showAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Bitte gib einen gültigen API-Key ein.")
         }
     }
 }

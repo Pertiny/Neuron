@@ -1,0 +1,1 @@
+*/15 * * * * /bin/bash ~/auto_git_push.sh >> ~/auto_git_log.txt 2>&1

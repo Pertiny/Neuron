@@ -1,8 +1,9 @@
-//
-//  Extensions.swift
-//  Neuron
-//
-//  Created by Jacques Zimmer on 16.04.25.
-//
+import UIKit
 
-import Foundation
+extension UIApplication {
+    var firstSafeAreaTop: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.windows.first?.safeAreaInsets.top }
+            .first ?? 0
+    }
+}

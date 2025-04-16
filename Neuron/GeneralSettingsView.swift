@@ -2,128 +2,91 @@ import SwiftUI
 
 struct GeneralSettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var showChatSettings = false
 
     @AppStorage("apiKey") private var apiKey: String = ""
-    @AppStorage("openAIOrgID") private var openAIOrgID: String = ""
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("language") private var language: String = "Deutsch"
-
-    @State private var tempAPIKey: String = ""
-    @State private var showAlert = false
-
     private let languages = ["Deutsch", "English", "Français", "Español"]
 
+    @State private var tempKey: String = ""
+    @State private var showAlert = false
+
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-
+        NavigationView {
             Form {
-                // API
-                Section(header: sectionTitle("API")) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("API-Key").foregroundColor(.white)
+                Section(header: Text("API-Key")) {
+                    TextField("sk-...", text: $tempKey)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .foregroundColor(.white)
+                        .padding(8)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(8)
+                        .onAppear { tempKey = apiKey }
 
-                        TextField("sk-...", text: $tempAPIKey)
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .foregroundColor(.white)
-                            .padding(8)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(8)
-                            .onAppear {
-                                tempAPIKey = apiKey
-                            }
-
-                        Text("Organisation-ID (optional)")
-                            .foregroundColor(.white)
-                            .padding(.top, 8)
-
-                        TextField("org-...", text: $openAIOrgID)
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .foregroundColor(.white)
-                            .padding(8)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(8)
-                    }
-
-                    HStack(spacing: 16) {
+                    HStack {
                         Button("Speichern") {
-                            let trimmed = tempAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-                            if trimmed.isEmpty {
+                            if tempKey.trimmingCharacters(in: .whitespaces).isEmpty {
                                 showAlert = true
                             } else {
-                                apiKey = trimmed
+                                apiKey = tempKey.trimmingCharacters(in: .whitespaces)
                                 dismiss()
                             }
                         }
                         .buttonStyle(.borderedProminent)
-                        .disabled(tempAPIKey.trimmingCharacters(in: .whitespaces).isEmpty)
 
                         Button("Löschen", role: .destructive) {
+                            tempKey = ""
                             apiKey = ""
-                            tempAPIKey = ""
                         }
                         .buttonStyle(.bordered)
                     }
                 }
-                .listRowBackground(Color.black)
 
-                // Appearance
-                Section(header: sectionTitle("Erscheinungsbild")) {
+                Section(header: Text("Erscheinungsbild")) {
                     Picker("Modus", selection: $appearanceMode) {
                         ForEach(AppearanceMode.allCases, id: \.self) {
-                            Text($0.rawValue)
+                            Text($0.rawValue).tag($0)
                         }
                     }
                     .pickerStyle(.segmented)
                     .tint(.white)
                 }
-                .listRowBackground(Color.black)
 
-                // Sprache
-                Section(header: sectionTitle("Sprache")) {
+                Section(header: Text("Sprache")) {
                     Picker("Sprache", selection: $language) {
-                        ForEach(languages, id: \.self) { lang in
-                            Text(lang).tag(lang)
+                        ForEach(languages, id: \.self) {
+                            Text($0)
                         }
                     }
-                    .pickerStyle(.menu)
-                    .tint(.white)
                 }
-                .listRowBackground(Color.black)
 
-                // Infos
-                Section(header: sectionTitle("Infos")) {
-                    NavigationLink("Impressum") { ComingSoonView(title: "Impressum") }
-                    NavigationLink("Datenschutz") { ComingSoonView(title: "Datenschutz") }
-                    NavigationLink("Version") { ComingSoonView(title: "Version") }
+                Section {
+                    Button("Chat-Einstellungen öffnen") {
+                        showChatSettings = true
+                    }
                 }
-                .listRowBackground(Color.black)
+
+                Section(header: Text("Debug & Info")) {
+                    NavigationLink("API-Key Debug", destination: KeyDebugView())
+                    NavigationLink("Impressum", destination: ComingSoonView(title: "Impressum"))
+                    NavigationLink("Datenschutz", destination: ComingSoonView(title: "Datenschutz"))
+                    NavigationLink("Version", destination: ComingSoonView(title: "Version"))
+                }
             }
-            .scrollContentBackground(.hidden)
-            .background(Color.black)
-            .font(.system(size: 16, weight: .regular, design: .monospaced))
+            .preferredColorScheme(appearanceMode.colorScheme)
             .navigationTitle("Einstellungen")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("<") { dismiss() }
-                        .font(.system(size: 24, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white)
-                        .padding(.leading, 8)
                 }
             }
             .alert("API-Key fehlt", isPresented: $showAlert) {
                 Button("OK", role: .cancel) { }
-            } message: {
-                Text("Bitte gib einen gültigen API-Key ein, um die App nutzen zu können.")
+            }
+            .fullScreenCover(isPresented: $showChatSettings) {
+                ChatSettingsView()
             }
         }
-    }
-
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.system(size: 20, weight: .bold, design: .monospaced))
-            .foregroundColor(.white)
     }
 }

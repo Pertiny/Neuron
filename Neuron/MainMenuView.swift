@@ -1,52 +1,56 @@
 import SwiftUI
 
 struct MainMenuView: View {
+    @AppStorage("appTheme") private var selectedTheme: AppTheme = .classic
+
     @State private var showNewChat = false
     @State private var showHistory = false
     @State private var showSettings = false
+    @StateObject private var network = NetworkMonitor.shared
 
     var body: some View {
-        ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
+        let currentTheme = selectedTheme
+
+        ZStack(alignment: .top) {
+            currentTheme.backgroundColor.edgesIgnoringSafeArea(.all)
+
+            // 🔔 Verbindung prüfen
+            ConnectionBannerView(isConnected: network.isConnected)
 
             VStack(spacing: 40) {
+                Spacer().frame(height: network.isConnected ? 0 : 40)
+
                 Text("Neuron")
                     .font(.system(size: 32, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
+                    .foregroundColor(currentTheme.primaryText)
 
                 VStack(spacing: 20) {
-                    Button(action: {
-                        showNewChat = true
-                    }) {
+                    Button(action: { showNewChat = true }) {
                         Text("Neuer Chat")
                             .font(.system(size: 16, weight: .medium, design: .monospaced))
-                            .foregroundColor(.black)
+                            .foregroundColor(currentTheme.buttonText)
                             .padding()
                             .frame(maxWidth: .infinity)
-                            .background(Color.white)
+                            .background(currentTheme.buttonBackground)
                             .cornerRadius(12)
                     }
 
-                    Button(action: {
-                        showHistory = true
-                    }) {
+                    Button(action: { showHistory = true }) {
                         Text("Verlauf")
                             .font(.system(size: 16, weight: .medium, design: .monospaced))
-                            .foregroundColor(.white)
+                            .foregroundColor(currentTheme.secondaryText)
                             .padding()
                             .frame(maxWidth: .infinity)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                                    .stroke(currentTheme.secondaryText.opacity(0.4), lineWidth: 1)
                             )
                     }
 
-                    Button(action: {
-                        showSettings = true
-                    }) {
+                    Button(action: { showSettings = true }) {
                         Text("Einstellungen")
                             .font(.system(size: 14, weight: .medium, design: .monospaced))
-                            .foregroundColor(.gray)
+                            .foregroundColor(currentTheme.secondaryText)
                     }
                 }
                 .padding(.horizontal)
@@ -54,13 +58,13 @@ struct MainMenuView: View {
             .padding()
         }
         .fullScreenCover(isPresented: $showNewChat) {
-            ChatView() // oder deine passende Chat-Start-View
+            ChatView()
         }
         .fullScreenCover(isPresented: $showHistory) {
-            HistoryView() // oder AllChatsView
+            HistoryView()
         }
         .fullScreenCover(isPresented: $showSettings) {
-            ChatSettingsView()
+            GeneralSettingsView()
         }
     }
 }

@@ -20,11 +20,21 @@ struct ChatBubbleView: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
-                    Markdown(message.content)
-                        .markdownTextStyle {
-                            Font(.system(size: 14, design: .monospaced))
-                        }
-                        .foregroundColor(.white)
+                    if containsMarkdown(message.content) {
+                        Markdown(message.content)
+                            .markdownTheme(
+                                Theme()
+                                    .text {
+                                        FontFamilyVariant(.monospaced)
+                                        FontSize(.em(0.9))
+                                        ForegroundColor(.white)
+                                    }
+                            )
+                    } else {
+                        Text(message.content)
+                            .font(.system(size: 14, design: .monospaced))
+                            .foregroundColor(.white)
+                    }
 
                     Button(action: {
                         UIPasteboard.general.string = message.content
@@ -44,5 +54,11 @@ struct ChatBubbleView: View {
             }
         }
         .padding(.horizontal, 12)
+    }
+
+    // 🔎 Primitive Markdown-Erkennung
+    private func containsMarkdown(_ text: String) -> Bool {
+        let markdownTriggers = ["**", "*", "_", "`", "```", "#", "-", "+", "[", "]", "(", ")"]
+        return markdownTriggers.contains { text.contains($0) }
     }
 }

@@ -1,3 +1,11 @@
+//
+//  BackHeaderView.swift
+//  Neuron
+//
+//  Created by Jacques Zimmer on 16.04.25.
+//
+
+
 import SwiftUI
 
 struct BackHeaderView: View {
@@ -10,6 +18,7 @@ struct BackHeaderView: View {
                 Text("<")
                     .font(.system(size: 20, weight: .bold, design: .monospaced))
                     .foregroundColor(.white)
+                    .opacity(0.9)
             }
             Spacer()
             Text(title)

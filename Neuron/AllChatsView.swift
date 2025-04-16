@@ -2,12 +2,12 @@ import SwiftUI
 
 struct AllChatsView: View {
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var chats: [ChatSession] = []
     private let storage = ChatStorage()
-    
-    var filterFolder: String? = nil // nil = alle Chats
-    
+
+    var filterFolder: String? = nil
+
     var filteredChats: [ChatSession] {
         if let folder = filterFolder {
             return chats.filter { $0.folder == folder }
@@ -15,11 +15,13 @@ struct AllChatsView: View {
             return chats
         }
     }
-    
+
     var body: some View {
-        ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
-            
+        VStack(spacing: 0) {
+            BackHeaderView(title: filterFolder ?? "All Chats") {
+                dismiss()
+            }
+
             List {
                 ForEach(filteredChats) { chat in
                     NavigationLink(destination: ChatView(loadedSession: chat)) {
@@ -27,7 +29,7 @@ struct AllChatsView: View {
                             Text(chat.title)
                                 .font(.system(size: 18, weight: .semibold, design: .monospaced))
                                 .foregroundColor(.white)
-                                .frame(maxWidth: chat.title.count < 15 ? .infinity : 300, alignment: .leading) // volle Breite bei kurzem Text
+                                .frame(maxWidth: chat.title.count < 15 ? .infinity : 300, alignment: .leading)
                             Text(chat.date, style: .date)
                                 .font(.system(size: 14, design: .monospaced))
                                 .foregroundColor(.gray)
@@ -40,29 +42,13 @@ struct AllChatsView: View {
             .listStyle(PlainListStyle())
             .background(Color.black)
         }
-        .navigationBarBackButtonHidden(true)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: { dismiss() }) {
-                    Text("<")
-                        .font(.system(size: 24, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white)
-                        .padding(.leading, 8)
-                }
-            }
-            ToolbarItem(placement: .principal) {
-                Text(filterFolder ?? "All Chats")
-                    .foregroundColor(.white)
-                    .font(.system(size: 20, weight: .bold, design: .monospaced))
-            }
-        }
+        .background(Color.black.edgesIgnoringSafeArea(.all))
         .preferredColorScheme(.dark)
         .onAppear {
             chats = storage.loadChats()
         }
     }
-    
+
     private func deleteChats(at offsets: IndexSet) {
         for index in offsets {
             let chat = filteredChats[index]

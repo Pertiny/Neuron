@@ -2,7 +2,10 @@ import SwiftUI
 
 struct ChatSettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    
+
+    // Aktuelle Settings
+    @AppStorage("apiKey") private var apiKey: String = ""
+    @AppStorage("openAIOrgID") private var openAIOrgID: String = ""
     @AppStorage("chatModel") private var chatModel: String = "gpt-3.5-turbo"
     @AppStorage("chatMaxTokens") private var chatMaxTokens: Int = 512
     @AppStorage("chatTemperature") private var chatTemperature: Double = 0.7
@@ -10,75 +13,76 @@ struct ChatSettingsView: View {
     @AppStorage("chatPresencePenalty") private var chatPresencePenalty: Double = 0.0
     @AppStorage("chatFrequencyPenalty") private var chatFrequencyPenalty: Double = 0.0
     @AppStorage("chatInitialPrompt") private var chatInitialPrompt: String = "You are a helpful assistant."
-    
-    private let availableModels = [
-        "gpt-3.5-turbo",
-        "gpt-3.5-turbo-16k",
-        "gpt-4",
-        "gpt-4-32k"
+    @AppStorage("userTextColorHex") private var userTextColorHex: String = "#00FFCC"
+
+    @State private var availableModels: [String] = []
+    @StateObject private var apiManager = APIManager()
+
+    @State private var showTemplateSheet = false
+    @State private var savedTemplates: [ChatTemplate] = []
+    @State private var newTemplateName: String = ""
+
+    private let fallbackModels = [
+        "gpt-3.5-turbo", "gpt-3.5-turbo-16k",
+        "gpt-4", "gpt-4-32k", "gpt-4-0613", "gpt-4-turbo", "gpt-4o"
     ]
-    
+
     var body: some View {
-        ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
-            
+        VStack(spacing: 0) {
+            HStack {
+                BackHeaderView(title: "Chat Settings") {
+                    dismiss()
+                }
+                Spacer()
+                Button {
+                    showTemplateSheet = true
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                        .foregroundColor(.white)
+                        .padding(.trailing, 16)
+                }
+            }
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    Text("Chat-Einstellungen")
-                        .font(.system(size: 24, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white)
-                        .padding(.top, 16)
-                    
+                    // Modellwahl
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Modell:")
+                        Text("Modell")
                             .foregroundColor(.white)
-                        Picker("Modell wählen", selection: $chatModel) {
-                            ForEach(availableModels, id: \.self) { model in
-                                Text(model).tag(model)
+                        if availableModels.isEmpty {
+                            ProgressView("Lade Modelle ...").foregroundColor(.white)
+                        } else {
+                            Picker("Modell wählen", selection: $chatModel) {
+                                ForEach(availableModels, id: \.self) {
+                                    Text($0).tag($0)
+                                }
                             }
+                            .pickerStyle(.menu)
+                            .accentColor(.white)
                         }
-                        .pickerStyle(.menu)
-                        .accentColor(.white)
                     }
-                    
+
+                    // Org-ID
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Max. Tokens: \(chatMaxTokens)")
+                        Text("Organisation-ID")
                             .foregroundColor(.white)
-                        Stepper("", value: $chatMaxTokens, in: 100...4096, step: 100)
-                            .labelsHidden()
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        let tempDegrees = chatTemperature * 100
-                        Text(String(format: "Temperature: %.0f°", tempDegrees))
+                        TextField("org-...", text: $openAIOrgID)
                             .foregroundColor(.white)
-                        NoThumbSlider(value: $chatTemperature, range: 0...1, step: 0.01)
-                            .frame(height: 16)
+                            .padding(10)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(6)
                     }
-                    
+
+                    // Schieberegler
+                    sliderInt(title: "Max Tokens", value: $chatMaxTokens, range: 100...4096, step: 100)
+                    sliderDouble(title: "Temperature", value: $chatTemperature, range: 0...1, step: 0.01)
+                    sliderDouble(title: "Top P", value: $chatTopP, range: 0...1, step: 0.05)
+                    sliderDouble(title: "Presence Penalty", value: $chatPresencePenalty, range: 0...2, step: 0.1)
+                    sliderDouble(title: "Frequency Penalty", value: $chatFrequencyPenalty, range: 0...2, step: 0.1)
+
+                    // System-Prompt
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(String(format: "Top P: %.2f", chatTopP))
-                            .foregroundColor(.white)
-                        NoThumbSlider(value: $chatTopP, range: 0...1, step: 0.05)
-                            .frame(height: 16)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(String(format: "Presence Penalty: %.2f", chatPresencePenalty))
-                            .foregroundColor(.white)
-                        NoThumbSlider(value: $chatPresencePenalty, range: 0...2, step: 0.1)
-                            .frame(height: 16)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(String(format: "Frequency Penalty: %.2f", chatFrequencyPenalty))
-                            .foregroundColor(.white)
-                        NoThumbSlider(value: $chatFrequencyPenalty, range: 0...2, step: 0.1)
-                            .frame(height: 16)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("System Prompt:")
+                        Text("System Prompt")
                             .foregroundColor(.white)
                         TextEditor(text: $chatInitialPrompt)
                             .foregroundColor(.white)
@@ -88,41 +92,151 @@ struct ChatSettingsView: View {
                             .cornerRadius(6)
                             .frame(minHeight: 100)
                     }
-                    
-                    Spacer()
+
+                    // Farbe
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Farbe deiner Nachrichten")
+                            .foregroundColor(.white)
+                        ColorPicker("", selection: Binding(
+                            get: { Color(hex: userTextColorHex) },
+                            set: { userTextColorHex = $0.hexString }
+                        ))
+                        .labelsHidden()
+                        .frame(height: 32)
+                    }
+
+                    Spacer(minLength: 40)
                 }
                 .padding(.horizontal, 24)
+                .padding(.top, 16)
             }
         }
-        .navigationBarBackButtonHidden(true) // nativen Back-Button ausblenden
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: {
-                    dismiss()
-                }) {
-                    Text("<")
-                        .font(.system(size: 24, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white)
-                        .padding(.leading, 8)
+        .background(Color.black.edgesIgnoringSafeArea(.all))
+        .preferredColorScheme(.dark)
+        .onAppear {
+            fetchModels()
+            loadTemplates()
+        }
+        .sheet(isPresented: $showTemplateSheet) {
+            templateSheet
+        }
+    }
+
+    // MARK: - Template Sheet
+    private var templateSheet: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                TextField("Template Name", text: $newTemplateName)
+                    .padding()
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(6)
+                    .foregroundColor(.white)
+
+                Button("Aktuelle Einstellungen speichern") {
+                    let new = ChatTemplate(
+                        title: newTemplateName,
+                        model: chatModel,
+                        maxTokens: chatMaxTokens,
+                        temperature: chatTemperature,
+                        topP: chatTopP,
+                        presencePenalty: chatPresencePenalty,
+                        frequencyPenalty: chatFrequencyPenalty,
+                        initialPrompt: chatInitialPrompt
+                    )
+                    savedTemplates.append(new)
+                    saveTemplates()
+                    showTemplateSheet = false
+                }
+
+                Divider().background(Color.white)
+
+                List {
+                    ForEach(savedTemplates) { template in
+                        Button(template.title) {
+                            applyTemplate(template)
+                            showTemplateSheet = false
+                        }
+                    }
+                    .onDelete { indexSet in
+                        savedTemplates.remove(atOffsets: indexSet)
+                        saveTemplates()
+                    }
                 }
             }
-            ToolbarItem(placement: .principal) {
-                Text("Chat Settings")
-                    .foregroundColor(.white)
-                    .font(.system(size: 20, weight: .bold, design: .monospaced))
+            .padding()
+            .background(Color.black)
+            .foregroundColor(.white)
+            .navigationTitle("Templates")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Schließen") {
+                        showTemplateSheet = false
+                    }
+                }
             }
         }
-        .font(.system(size: 16, weight: .regular, design: .monospaced))
         .preferredColorScheme(.dark)
     }
-}
 
-struct ChatSettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-            ChatSettingsView()
+    // MARK: - Slider Helpers
+
+    private func sliderDouble(title: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(title): \(String(format: "%.2f", value.wrappedValue))")
+                .foregroundColor(.white)
+            NoThumbSlider(value: value, range: range, step: step)
+                .frame(height: 16)
         }
-        .preferredColorScheme(.dark)
+    }
+
+    private func sliderInt(title: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(title): \(value.wrappedValue)")
+                .foregroundColor(.white)
+
+            NoThumbSlider(
+                value: Binding(
+                    get: { Double(value.wrappedValue) },
+                    set: { value.wrappedValue = Int(round($0 / Double(step)) * Double(step)) }
+                ),
+                range: Double(range.lowerBound)...Double(range.upperBound),
+                step: Double(step)
+            )
+            .frame(height: 16)
+        }
+    }
+
+    // MARK: - Template Handling
+
+    private func applyTemplate(_ template: ChatTemplate) {
+        chatModel = template.model
+        chatMaxTokens = template.maxTokens
+        chatTemperature = template.temperature
+        chatTopP = template.topP
+        chatPresencePenalty = template.presencePenalty
+        chatFrequencyPenalty = template.frequencyPenalty
+        chatInitialPrompt = template.initialPrompt
+    }
+
+    private func saveTemplates() {
+        if let data = try? JSONEncoder().encode(savedTemplates) {
+            UserDefaults.standard.set(data, forKey: "chatTemplates")
+        }
+    }
+
+    private func loadTemplates() {
+        if let data = UserDefaults.standard.data(forKey: "chatTemplates"),
+           let decoded = try? JSONDecoder().decode([ChatTemplate].self, from: data) {
+            self.savedTemplates = decoded
+        }
+    }
+
+    private func fetchModels() {
+        apiManager.fetchAvailableModels(apiKey: apiKey) { models in
+            self.availableModels = models.isEmpty ? fallbackModels : models
+            if !availableModels.contains(chatModel) {
+                chatModel = availableModels.first ?? "gpt-3.5-turbo"
+            }
+        }
     }
 }

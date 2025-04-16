@@ -6,15 +6,14 @@ struct ChatMessage: Identifiable {
     let content: String
 }
 
-enum MessageRole {
+enum MessageRole: String, Codable {
     case user
     case assistant
-    
-    // Farbzuweisung passend zu Rolle
+
     var textColor: Color {
         switch self {
         case .user:
-            return Color(red: 127/255, green: 255/255, blue: 212/255) // #7fffd4 Aquamarine
+            return Color(red: 127/255, green: 255/255, blue: 212/255)
         case .assistant:
             return .white
         }
