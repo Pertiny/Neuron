@@ -1,10 +1,6 @@
 import SwiftUI
 
 struct ChatSettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    @AppStorage("apiKey") private var apiKey: String = ""
-    @AppStorage("openAIOrgID") private var openAIOrgID: String = ""
     @AppStorage("chatModel") private var chatModel: String = "gpt-3.5-turbo"
     @AppStorage("chatMaxTokens") private var chatMaxTokens: Int = 512
     @AppStorage("chatTemperature") private var chatTemperature: Double = 0.7
@@ -13,6 +9,7 @@ struct ChatSettingsView: View {
     @AppStorage("chatFrequencyPenalty") private var chatFrequencyPenalty: Double = 0.0
     @AppStorage("chatInitialPrompt") private var chatInitialPrompt: String = "You are a helpful assistant."
     @AppStorage("userTextColorHex") private var userTextColorHex: String = "#00FFCC"
+    @AppStorage("apiKey") private var apiKey: String = ""
 
     @State private var availableModels: [String] = []
     @StateObject private var apiManager = APIManager()
@@ -27,119 +24,109 @@ struct ChatSettingsView: View {
     ]
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                BackHeaderView(title: "Chat Settings") {
-                    dismiss()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                settingBlock(title: "Modell", infoKey: "chatModel", info: "Welches Sprachmodell verwendet wird.") {
+                    if availableModels.isEmpty {
+                        ProgressView("Lade Modelle ...").foregroundColor(.white)
+                    } else {
+                        Picker("Modell wählen", selection: $chatModel) {
+                            ForEach(availableModels, id: \.self) {
+                                Text($0).tag($0)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .accentColor(.white)
+                    }
                 }
-                Spacer()
+
+                settingSliderInt(
+                    title: "Max Tokens",
+                    value: $chatMaxTokens,
+                    range: 100...4096,
+                    step: 100,
+                    key: "chatMaxTokens",
+                    info: "Maximale Länge der Antwort in Tokens."
+                )
+
+                settingSliderDouble(
+                    title: "Temperature",
+                    value: $chatTemperature,
+                    range: 0...1,
+                    step: 0.01,
+                    key: "chatTemperature",
+                    info: "Steuert die Zufälligkeit. Höher = kreativer, niedriger = präziser."
+                )
+
+                settingSliderDouble(
+                    title: "Top P",
+                    value: $chatTopP,
+                    range: 0...1,
+                    step: 0.05,
+                    key: "chatTopP",
+                    info: "Alternativer Zufallswert zu Temperature. Nur einer sollte hoch sein."
+                )
+
+                settingSliderDouble(
+                    title: "Presence Penalty",
+                    value: $chatPresencePenalty,
+                    range: 0...2,
+                    step: 0.1,
+                    key: "chatPresencePenalty",
+                    info: "Bestrafung für Wiederholungen – fördert neue Inhalte."
+                )
+
+                settingSliderDouble(
+                    title: "Frequency Penalty",
+                    value: $chatFrequencyPenalty,
+                    range: 0...2,
+                    step: 0.1,
+                    key: "chatFrequencyPenalty",
+                    info: "Verhindert Wiederholungen einzelner Wörter."
+                )
+
+                settingBlock(title: "System Prompt", infoKey: "systemPrompt", info: "Startanweisung für den Assistenten.") {
+                    TextEditor(text: $chatInitialPrompt)
+                        .foregroundColor(.white)
+                        .font(.system(size: 14, design: .monospaced))
+                        .padding(8)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(6)
+                        .frame(minHeight: 100)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Farbe deiner Nachrichten")
+                        .foregroundColor(.white)
+                    ColorPicker("", selection: Binding(
+                        get: { Color(hex: userTextColorHex) },
+                        set: { userTextColorHex = $0.hexString }
+                    ))
+                    .labelsHidden()
+                    .frame(height: 32)
+                }
+
                 Button {
                     showTemplateSheet = true
                 } label: {
-                    Image(systemName: "folder.badge.plus")
-                        .foregroundColor(.white)
-                        .padding(.trailing, 16)
+                    HStack {
+                        Image(systemName: "doc.badge.plus")
+                        Text("Templates verwalten")
+                    }
+                    .font(.system(size: 16, weight: .medium))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.blue)
+                    .cornerRadius(8)
+                    .foregroundColor(.white)
                 }
-            }
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    settingBlock(title: "Modell", infoKey: "chatModel", info: "Welches Sprachmodell verwendet wird.") {
-                        if availableModels.isEmpty {
-                            ProgressView("Lade Modelle ...").foregroundColor(.white)
-                        } else {
-                            Picker("Modell wählen", selection: $chatModel) {
-                                ForEach(availableModels, id: \.self) {
-                                    Text($0).tag($0)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .accentColor(.white)
-                        }
-                    }
-
-                    settingBlock(title: "Organisation-ID", infoKey: "orgID", info: "Deine OpenAI Organisation (optional).") {
-                        TextField("org-...", text: $openAIOrgID)
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(6)
-                    }
-
-                    settingSliderInt(
-                        title: "Max Tokens",
-                        value: $chatMaxTokens,
-                        range: 100...4096,
-                        step: 100,
-                        key: "chatMaxTokens",
-                        info: "Maximale Länge der Antwort in Tokens."
-                    )
-
-                    settingSliderDouble(
-                        title: "Temperature",
-                        value: $chatTemperature,
-                        range: 0...1,
-                        step: 0.01,
-                        key: "chatTemperature",
-                        info: "Steuert die Zufälligkeit. Höher = kreativer, niedriger = präziser."
-                    )
-
-                    settingSliderDouble(
-                        title: "Top P",
-                        value: $chatTopP,
-                        range: 0...1,
-                        step: 0.05,
-                        key: "chatTopP",
-                        info: "Alternativer Zufallswert zu Temperature. Nur einer sollte hoch sein."
-                    )
-
-                    settingSliderDouble(
-                        title: "Presence Penalty",
-                        value: $chatPresencePenalty,
-                        range: 0...2,
-                        step: 0.1,
-                        key: "chatPresencePenalty",
-                        info: "Bestrafung für Wiederholungen – fördert neue Inhalte."
-                    )
-
-                    settingSliderDouble(
-                        title: "Frequency Penalty",
-                        value: $chatFrequencyPenalty,
-                        range: 0...2,
-                        step: 0.1,
-                        key: "chatFrequencyPenalty",
-                        info: "Verhindert Wiederholungen einzelner Wörter."
-                    )
-
-                    settingBlock(title: "System Prompt", infoKey: "systemPrompt", info: "Startanweisung für den Assistenten.") {
-                        TextEditor(text: $chatInitialPrompt)
-                            .foregroundColor(.white)
-                            .font(.system(size: 14, design: .monospaced))
-                            .padding(8)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(6)
-                            .frame(minHeight: 100)
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Farbe deiner Nachrichten")
-                            .foregroundColor(.white)
-                        ColorPicker("", selection: Binding(
-                            get: { Color(hex: userTextColorHex) },
-                            set: { userTextColorHex = $0.hexString }
-                        ))
-                        .labelsHidden()
-                        .frame(height: 32)
-                    }
-
-                    Spacer(minLength: 40)
-                }
-                .padding(.horizontal, 24)
                 .padding(.top, 16)
+
+                Spacer(minLength: 40)
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
         }
-        .background(Color.black.ignoresSafeArea())
-        .preferredColorScheme(.dark)
         .onAppear {
             fetchModels()
             loadTemplates()
@@ -289,3 +276,4 @@ struct ChatSettingsView: View {
         }
     }
 }
+

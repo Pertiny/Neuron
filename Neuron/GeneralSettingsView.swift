@@ -1,92 +1,61 @@
 import SwiftUI
 
 struct GeneralSettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var showChatSettings = false
-
-    @AppStorage("apiKey") private var apiKey: String = ""
-    @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
-    @AppStorage("language") private var language: String = "Deutsch"
-    private let languages = ["Deutsch", "English", "Français", "Español"]
-
-    @State private var tempKey: String = ""
-    @State private var showAlert = false
-
+    @AppStorage("appTheme") private var selectedTheme: AppTheme = .classic
+    @AppStorage("hapticFeedback") private var hapticFeedback: Bool = true
+    @AppStorage("autoSaveSessions") private var autoSaveSessions: Bool = true
+    
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("API-Key")) {
-                    TextField("sk-...", text: $tempKey)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .foregroundColor(.white)
-                        .padding(8)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(8)
-                        .onAppear { tempKey = apiKey }
-
-                    HStack {
-                        Button("Speichern") {
-                            if tempKey.trimmingCharacters(in: .whitespaces).isEmpty {
-                                showAlert = true
-                            } else {
-                                apiKey = tempKey.trimmingCharacters(in: .whitespaces)
-                                dismiss()
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-
-                        Button("Löschen", role: .destructive) {
-                            tempKey = ""
-                            apiKey = ""
-                        }
-                        .buttonStyle(.bordered)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // MARK: - Theme Settings
+                SettingsSection(title: "Erscheinungsbild") {
+                    ForEach(AppTheme.allCases, id: \.self) { theme in
+                        ThemeOptionRow(
+                            theme: theme,
+                            isSelected: selectedTheme == theme,
+                            onSelect: { selectedTheme = theme }
+                        )
                     }
                 }
-
-                Section(header: Text("Erscheinungsbild")) {
-                    Picker("Modus", selection: $appearanceMode) {
-                        ForEach(AppearanceMode.allCases, id: \.self) {
-                            Text($0.rawValue).tag($0)
+                
+                // MARK: - Interface Settings
+                SettingsSection(title: "Interface") {
+                    ToggleRow(
+                        title: "Haptisches Feedback",
+                        description: "Vibrationseffekte bei Interaktionen",
+                        isOn: $hapticFeedback
+                    )
+                    
+                    ToggleRow(
+                        title: "Sessions automatisch speichern",
+                        description: "Chats werden nach jeder Nachricht gespeichert",
+                        isOn: $autoSaveSessions
+                    )
+                }
+                
+                // MARK: - About App
+                SettingsSection(title: "Über Neuron") {
+                    InfoRow(title: "Version", value: "1.0.0")
+                    InfoRow(title: "Build", value: "102")
+                    
+                    Button {
+                        // Feedback-Email
+                    } label: {
+                        HStack {
+                            Text("Feedback senden")
+                                .foregroundColor(.white)
+                            Spacer()
+                            Image(systemName: "envelope")
+                                .foregroundColor(.gray)
                         }
-                    }
-                    .pickerStyle(.segmented)
-                    .tint(.white)
-                }
-
-                Section(header: Text("Sprache")) {
-                    Picker("Sprache", selection: $language) {
-                        ForEach(languages, id: \.self) {
-                            Text($0)
-                        }
+                        .padding(.vertical, 10)
                     }
                 }
-
-                Section {
-                    Button("Chat-Einstellungen öffnen") {
-                        showChatSettings = true
-                    }
-                }
-
-                Section(header: Text("Debug & Info")) {
-                    NavigationLink("API-Key Debug", destination: KeyDebugView())
-                    NavigationLink("Impressum", destination: ComingSoonView(title: "Impressum"))
-                    NavigationLink("Datenschutz", destination: ComingSoonView(title: "Datenschutz"))
-                    NavigationLink("Version", destination: ComingSoonView(title: "Version"))
-                }
             }
-            .preferredColorScheme(appearanceMode.colorScheme)
-            .navigationTitle("Einstellungen")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("<") { dismiss() }
-                }
-            }
-            .alert("API-Key fehlt", isPresented: $showAlert) {
-                Button("OK", role: .cancel) { }
-            }
-            .fullScreenCover(isPresented: $showChatSettings) {
-                ChatSettingsView()
-            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 24)
         }
     }
 }
+

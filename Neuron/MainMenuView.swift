@@ -1,17 +1,22 @@
-
 import SwiftUI
 
 struct MainMenuView: View {
+    @EnvironmentObject private var navigationModel: NavigationModel
     @AppStorage("appTheme") private var selectedTheme: AppTheme = .classic
-    @State private var showNewChat = false
-    @State private var showHistory = false
-    @State private var showSettings = false
-    @State private var showAPISettings = false
+    
+    @State private var loadedSession: ChatSession?
+    @State private var chats: [ChatSession] = []
 
     @StateObject private var network = NetworkMonitor.shared
-    @State private var recentChats: [ChatSession] = []
-
     private let storage = ChatStorage()
+
+    private var recentChats: [ChatSession] {
+        chats
+            .filter { !$0.isArchived && ($0.folder ?? "").isEmpty }
+            .sorted(by: { $0.date > $1.date })
+            .prefix(3)
+            .map { $0 }
+    }
 
     var body: some View {
         let theme = selectedTheme
@@ -20,127 +25,125 @@ struct MainMenuView: View {
             theme.backgroundColor.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Spacer().frame(height: UIApplication.shared.firstSafeAreaTop + 16)
+                Spacer().frame(height: UIApplication.shared.firstSafeAreaTop + 20)
 
-                // Header
+                // MARK: - Header
                 HStack {
                     Text("Neuron")
-                        .font(.system(size: 26, weight: .bold, design: .monospaced))
+                        .font(.system(size: 28, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
 
                     Spacer()
 
                     Button {
-                        showNewChat = true
+                        navigationModel.navigateTo(.chat(nil))
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 26))
+                            .font(.system(size: 24))
                             .foregroundColor(.white)
-                            .padding(4)
                     }
                 }
                 .padding(.horizontal, 24)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(recentChats.prefix(3)) { chat in
-                        HStack(alignment: .center) {
-                            Button {
-                                showChat(chat)
-                            } label: {
-                                HStack {
-                                    Text(chat.title)
-                                        .font(.system(size: 14, weight: .medium, design: .monospaced))
-                                        .foregroundColor(.white)
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-
-                                    Spacer()
-
-                                    VStack(alignment: .trailing, spacing: 2) {
-                                        Text(chat.date.formatted(date: .abbreviated, time: .omitted))
-                                            .font(.system(size: 12, design: .monospaced))
-                                            .foregroundColor(.gray)
-                                        Text(chat.date.formatted(date: .omitted, time: .shortened))
-                                            .font(.system(size: 12, design: .monospaced))
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                                .padding()
-                                .background(Color.white.opacity(0.05))
-                                .cornerRadius(10)
-                            }
-
+                // MARK: - Chatliste
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(recentChats) { chat in
+                        HStack {
+                            Text(chat.title)
+                                .font(.system(size: 16, design: .monospaced))
+                                .foregroundColor(Color.gray)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            
+                            Spacer()
+                            
                             Menu {
-                                Button("Löschen", role: .destructive) {
-                                    deleteChat(chat)
-                                }
-
-                                Button("Archivieren") {
+                                Button {
                                     archiveChat(chat)
+                                } label: {
+                                    Label("Archivieren", systemImage: "archivebox")
                                 }
 
-                                Button("In Ordner verschieben") {
-                                    // komm später
+                                Button(role: .destructive) {
+                                    deleteChat(chat)
+                                } label: {
+                                    Label("Löschen", systemImage: "trash")
+                                }
+
+                                Button {
+                                    // Optional: später erweitern
+                                } label: {
+                                    Label("In Ordner verschieben", systemImage: "folder")
                                 }
                             } label: {
                                 Image(systemName: "ellipsis")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.gray)
-                                    .padding(10)
-                                    .background(Color.white.opacity(0.08))
-                                    .clipShape(Circle())
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .font(.system(size: 16))
                             }
                         }
-                        .padding(.horizontal, 24)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            navigationModel.navigateTo(.chat(chat))
+                        }
+                        .padding(.vertical, 12)
+                        
+                        Divider()
+                            .background(Color.gray.opacity(0.3))
                     }
 
+                    // MARK: - Verlauf
                     Button {
-                        showHistory = true
+                        navigationModel.navigateTo(.history)
                     } label: {
                         HStack(spacing: 4) {
                             Text("History")
-                                .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                                .font(.system(size: 16, weight: .regular, design: .monospaced))
                                 .foregroundColor(.white)
+                            
                             Image(systemName: "arrow.right")
-                                .font(.system(size: 14))
+                                .font(.system(size: 12))
+                                .foregroundColor(.blue)
                         }
+                        .padding(.vertical, 12)
                     }
-                    .padding(.horizontal, 24)
-
-                    Rectangle()
-                        .frame(height: 1)
-                        .frame(maxWidth: 64)
-                        .foregroundColor(.gray.opacity(0.2))
-                        .padding(.horizontal, 24)
+                    
+                    Divider()
+                        .background(Color.gray.opacity(0.3))
                 }
-                .padding(.top, 20)
+                .padding(.top, 24)
+                .padding(.horizontal, 24)
 
                 Spacer()
 
+                // MARK: - Status
                 VStack(spacing: 4) {
-                    Text(UserDefaults.standard.string(forKey: "apiKey")?.isEmpty == false ? "API–Key aktiv" : "Kein API–Key")
+                    Text(UserDefaults.standard.string(forKey: "apiKey")?.isEmpty == false ? "API-Key aktiv" : "Kein API-Key")
+                        .foregroundColor(Color.green)
+                        .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    
                     Text(network.isConnected ? "Netzwerk verbunden" : "Kein Netzwerk")
+                        .foregroundColor(Color.green)
+                        .font(.system(size: 14, weight: .medium, design: .monospaced))
                 }
-                .foregroundColor(.green)
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .padding(.bottom, 16)
+                .padding(.bottom, 24)
 
+                // MARK: - Dock
                 HStack {
                     Button {
-                        showSettings = true
+                        navigationModel.navigateTo(.settings)
                     } label: {
                         Image(systemName: "gearshape")
-                            .font(.system(size: 22))
+                            .font(.system(size: 24))
                             .foregroundColor(.white)
                     }
 
                     Spacer()
 
                     Button {
-                        showAPISettings = true
+                        navigationModel.navigateTo(.apiSettings)
                     } label: {
                         Image(systemName: "key.fill")
-                            .font(.system(size: 20))
+                            .font(.system(size: 24))
                             .foregroundColor(.white)
                     }
                 }
@@ -148,38 +151,25 @@ struct MainMenuView: View {
                 .padding(.bottom, UIApplication.shared.firstSafeAreaBottom + 12)
             }
         }
-        .fullScreenCover(isPresented: $showNewChat) {
-            ChatView(loadedSession: nil)
-        }
-        .fullScreenCover(isPresented: $showHistory) {
-            HistoryView()
-        }
-        .fullScreenCover(isPresented: $showSettings) {
-            GeneralSettingsView()
-        }
-        .fullScreenCover(isPresented: $showAPISettings) {
-            GeneralSettingsView()
-        }
         .onAppear {
-            recentChats = ChatStorage().loadChats()
-                .filter { !$0.isArchived }
-                .sorted(by: { $0.date > $1.date })
+            chats = storage.loadChats()
         }
-    }
-
-    private func showChat(_ chat: ChatSession) {
-        showNewChat = true
+        .navigationBarHidden(true)
     }
 
     private func deleteChat(_ chat: ChatSession) {
-        ChatStorage().deleteChat(id: chat.id)
-        recentChats.removeAll { $0.id == chat.id }
+        withAnimation {
+            storage.deleteChat(id: chat.id)
+            chats = storage.loadChats()
+        }
     }
 
     private func archiveChat(_ chat: ChatSession) {
-        var updated = chat
-        updated.isArchived = true
-        ChatStorage().updateChat(updated)
-        recentChats.removeAll { $0.id == chat.id }
+        withAnimation {
+            var updated = chat
+            updated.isArchived = true
+            storage.updateChat(updated)
+            chats = storage.loadChats()
+        }
     }
 }

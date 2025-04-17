@@ -5,7 +5,11 @@ struct SettingsContainerView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("appTheme") private var selectedTheme: AppTheme = .classic
     
-    @State private var selectedTab = 0
+    @State private var selectedTab: Int
+    
+    init(initialTab: Int = 0) {
+        self._selectedTab = State(initialValue: initialTab)
+    }
     
     var body: some View {
         let theme = selectedTheme
@@ -74,7 +78,7 @@ struct SettingsContainerView: View {
                         .tag(2)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .animation(.easeInOut, value: selectedTab)
+                .animation(.easeInOut(duration: 0.2), value: selectedTab)
             }
         }
         .navigationBarHidden(true)

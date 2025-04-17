@@ -18,7 +18,27 @@ struct APISettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 // MARK: - API Key
-                settingBlock(title: "OpenAI API-Key", infoKey: "apiKey", info: "Dein OpenAI API-Schlüssel, beginnt mit 'sk-'") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Text("OpenAI API-Key").foregroundColor(.white)
+                        Button {
+                            showingInfo["apiKey"] = true
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.gray)
+                        }
+                        .popover(isPresented: Binding(get: {
+                            showingInfo["apiKey"] ?? false
+                        }, set: {
+                            showingInfo["apiKey"] = $0
+                        })) {
+                            Text("Dein OpenAI API-Schlüssel, beginnt mit 'sk-'")
+                                .font(.system(size: 14, design: .monospaced))
+                                .padding()
+                                .frame(width: 250)
+                        }
+                    }
+                    
                     VStack(spacing: 16) {
                         if !apiKey.isEmpty {
                             HStack {
@@ -73,7 +93,27 @@ struct APISettingsView: View {
                     .padding(.vertical, 8)
                 }
                 
-                settingBlock(title: "Organisation-ID", infoKey: "orgID", info: "Deine OpenAI Organisation (optional).") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Text("Organisation-ID").foregroundColor(.white)
+                        Button {
+                            showingInfo["orgID"] = true
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.gray)
+                        }
+                        .popover(isPresented: Binding(get: {
+                            showingInfo["orgID"] ?? false
+                        }, set: {
+                            showingInfo["orgID"] = $0
+                        })) {
+                            Text("Deine OpenAI Organisation (optional).")
+                                .font(.system(size: 14, design: .monospaced))
+                                .padding()
+                                .frame(width: 250)
+                        }
+                    }
+                    
                     TextField("org-...", text: $openAIOrgID)
                         .foregroundColor(.white)
                         .padding(10)
@@ -81,35 +121,11 @@ struct APISettingsView: View {
                         .cornerRadius(6)
                 }
                 
-                settingBlock(title: "Verfügbare Modelle", infoKey: "models", info: "Liste der verfügbaren OpenAI-Modelle mit deinem API-Key.") {
-                    if apiKey.isEmpty {
-                        Text("Kein API-Key konfiguriert")
-                            .foregroundColor(.gray)
-                            .padding(.vertical, 8)
-                    } else if availableModels.isEmpty {
-                        ProgressView("Lade Modelle...")
-                            .foregroundColor(.white)
-                            .padding(.vertical, 8)
-                    } else {
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(availableModels.prefix(5), id: \.self) { model in
-                                Text("• \(model)")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 14, design: .monospaced))
-                            }
-                            
-                            if availableModels.count > 5 {
-                                Text("+ \(availableModels.count - 5) weitere...")
-                                    .foregroundColor(.gray)
-                                    .font(.system(size: 14, design: .monospaced))
-                            }
-                        }
-                        .padding(.vertical, 8)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Text("Information").foregroundColor(.white)
                     }
-                }
-                
-                // MARK: - API Info
-                settingBlock(title: "Information", infoKey: "apiInfo", info: "Wichtige Informationen zur API") {
+                    
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Der API-Key wird sicher in deinem Gerät gespeichert und nicht weitergegeben.")
                             .foregroundColor(.gray)
@@ -138,32 +154,6 @@ struct APISettingsView: View {
             if !apiKey.isEmpty {
                 fetchModels()
             }
-        }
-    }
-    
-    @ViewBuilder
-    private func settingBlock<Content: View>(title: String, infoKey: String, info: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Text(title).foregroundColor(.white)
-                Button {
-                    showingInfo[infoKey] = true
-                } label: {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(.gray)
-                }
-                .popover(isPresented: Binding(get: {
-                    showingInfo[infoKey] ?? false
-                }, set: {
-                    showingInfo[infoKey] = $0
-                })) {
-                    Text(info)
-                        .font(.system(size: 14, design: .monospaced))
-                        .padding()
-                        .frame(width: 250)
-                }
-            }
-            content()
         }
     }
     
