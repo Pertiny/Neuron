@@ -5,7 +5,6 @@
 //  Created by Jacques Zimmer on 18.04.25.
 //
 
-
 import SwiftUI
 
 @main
@@ -19,10 +18,6 @@ struct NeuronApp: App {
                 .environmentObject(coordinator)
                 .environmentObject(themeManager)
                 .preferredColorScheme(themeManager.currentTheme.colorScheme)
-                .onAppear {
-                    // Setze initiale App-Erscheinung
-                    themeManager.applyCurrentTheme()
-                }
                 .tint(themeManager.currentTheme.accent)
         }
     }

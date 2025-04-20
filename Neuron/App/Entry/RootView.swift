@@ -5,7 +5,6 @@
 //  Created by Jacques Zimmer on 18.04.25.
 //
 
-
 import SwiftUI
 
 struct RootView: View {
@@ -14,7 +13,7 @@ struct RootView: View {
     
     var body: some View {
         NavigationStack(path: $coordinator.path) {
-            ChatListView()
+            ChatListView() // Verwende deine bestehende ChatListView statt HomeView
                 .navigationDestination(for: AppCoordinator.Route.self) { route in
                     switch route {
                     case .chatDetail(let id):
@@ -22,8 +21,7 @@ struct RootView: View {
                     case .settings:
                         SettingsView()
                     case .modelSelection:
-                        EmptyView()
-                        
+                        Text("Model Selection") // Vorübergehend, bis du diese View implementiert hast
                     }
                 }
                 .sheet(item: $coordinator.presentedSheet) { sheet in
@@ -42,12 +40,5 @@ struct RootView: View {
         .modifier(ThemeModifier())
         .environmentObject(coordinator)
         .environmentObject(themeManager)
-    }
-}
-
-// Diese Struktur ermöglicht Preview ohne App neu zu kompilieren
-struct RootView_Previews: PreviewProvider {
-    static var previews: some View {
-        RootView()
     }
 }

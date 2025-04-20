@@ -5,7 +5,6 @@
 //  Created by Jacques Zimmer on 18.04.25.
 //
 
-
 import Foundation
 
 // Modell-Definitionen
@@ -70,5 +69,30 @@ struct ChatModel: Identifiable, Codable, Hashable {
     
     static func getModel(for id: String) -> ChatModel {
         availableModels.first { $0.id == id } ?? availableModels[0]
+    }
+    
+    // Brückenkompatibilitätsmethode für UUID-ID-Zugriffe aus Home/ChatListView
+    static func getModel(for id: UUID) -> ChatModel {
+        // Konvertiere UUID zu String oder verwende einen Fallback
+        let stringId = id.uuidString
+        // Versuche zuerst eine exakte Übereinstimmung
+        if let exact = availableModels.first(where: { $0.id == stringId }) {
+            return exact
+        }
+        // Sonst greife auf das Standardmodell zurück
+        return availableModels[0]
+    }
+}
+
+// Erweiterung für UUID-basierte Identifizierung, um mit bestehenden Modellen kompatibel zu sein
+extension ChatModel {
+    // Hilfsmethode zur Umwandlung in eine UUID-basierte ID
+    var asUUID: UUID {
+        // Wenn die ID bereits ein gültiger UUID-String ist
+        if let uuid = UUID(uuidString: id) {
+            return uuid
+        }
+        // Andernfalls generiere eine deterministische UUID basierend auf der ID
+        return UUID(uuid: id.data(using: .utf8)?.withUnsafeBytes { $0.load(as: uuid_t.self) } ?? UUID().uuid)
     }
 }

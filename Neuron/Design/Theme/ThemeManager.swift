@@ -1,157 +1,75 @@
+//
+//  ThemeManager.swift
+//  Neuron
+//
+//  Created by Jacques Zimmer on 20.04.25.
+//
+
+
+//
+//  ThemeManager.swift
+//  Neuron
+//
+
 import SwiftUI
+import Foundation
+
 
 final class ThemeManager: ObservableObject {
-    // Verfügbare Themes
-    enum ThemeType: String, CaseIterable, Identifiable {
-        case terminal = "terminal"
-        case minimalDark = "minimalDark"
-        case paper = "paper"
-        
-        var id: String { rawValue }
-        
-        var displayName: String {
-            switch self {
-            case .terminal: return "Terminal"
-            case .minimalDark: return "Minimal Dark"
-            case .paper: return "Paper"
-            }
-        }
-    }
-
-    // Speichert aktuelle Theme-Einstellung
-    @AppStorage("app.selectedTheme") private var selectedThemeRaw: String = ThemeType.terminal.rawValue
-    
+    @Published var customThemes: [CustomTheme] = []
     @Published var currentTheme: Theme
-    
+
+    @AppStorage("app.selectedTheme") private var selectedThemeRaw: String = ThemeType.terminal.rawValue
+
     init() {
-        // Direkter Zugriff auf UserDefaults statt @AppStorage um self-access zu umgehen
+        let loadedCustomThemes = ThemeManager.loadCustomThemesFromDisk()
         let storedThemeRaw = UserDefaults.standard.string(forKey: "app.selectedTheme") ?? ThemeType.terminal.rawValue
         let themeType = ThemeType(rawValue: storedThemeRaw) ?? .terminal
-        self.currentTheme = Theme(type: themeType)
-    }
-    
-    // Wechsel zu anderem Theme
-    func switchTheme(to themeType: ThemeType) {
-        currentTheme = Theme(type: themeType)
-        selectedThemeRaw = themeType.rawValue
-        applyCurrentTheme()
-    }
-    
-    // Wende Theme-Einstellungen systemweit an
-    func applyCurrentTheme() {
-        // Hier könnten weitere globale UI-Anpassungen erfolgen
-    }
-}
 
+        if themeType == .custom,
+           let customThemeId = UserDefaults.standard.string(forKey: "app.customThemeId"),
+           let customTheme = loadedCustomThemes.first(where: { $0.id.uuidString == customThemeId }) {
+            currentTheme = ThemeManager.createCustomTheme(from: customTheme)
+        } else {
+            currentTheme = Theme(type: themeType)
+        }
 
-// Theme-Struktur mit allen Design-Eigenschaften
-struct Theme {
-    let type: ThemeManager.ThemeType
-    
-    // Farben
-    var primary: Color {
-        switch type {
-        case .terminal: return .terminalGreen
-        case .minimalDark: return .white
-        case .paper: return .black
-        }
+        self.customThemes = loadedCustomThemes
     }
-    
-    var background: Color {
-        switch type {
-        case .terminal: return .black
-        case .minimalDark: return Color(hex: "#121212")
-        case .paper: return .white
-        }
-    }
-    
-    var accent: Color {
-        switch type {
-        case .terminal: return .terminalGreen
-        case .minimalDark: return Color(hex: "#6C6C6C") // Aus den Anforderungen
-        case .paper: return .blue
-        }
-    }
-    
-    var secondary: Color {
-        switch type {
-        case .terminal: return .terminalGreen.opacity(0.6)
-        case .minimalDark: return .gray
-        case .paper: return .gray
-        }
-    }
-    
-    // Text-Farben
-    var textPrimary: Color {
-        switch type {
-        case .terminal: return .terminalGreen
-        case .minimalDark: return .white
-        case .paper: return .black
-        }
-    }
-    
-    var textSecondary: Color {
-        switch type {
-        case .terminal: return .terminalGreen.opacity(0.7)
-        case .minimalDark: return .gray
-        case .paper: return .gray
-        }
-    }
-    
-    // System-Erscheinung
-    var colorScheme: ColorScheme? {
-        switch type {
-        case .terminal, .minimalDark: return .dark
-        case .paper: return .light
-        }
-    }
-    
-    // Fonts
-    var titleFont: Font {
-        switch type {
-        case .terminal: return .system(.title2, design: .monospaced)
-        default: return .system(.title2, design: .rounded)
-        }
-    }
-    
-    var bodyFont: Font {
-        switch type {
-        case .terminal: return .system(.body, design: .monospaced)
-        default: return .system(.body)
-        }
-    }
-    
-    var captionFont: Font {
-        switch type {
-        case .terminal: return .system(.caption, design: .monospaced)
-        default: return .system(.caption)
-        }
-    }
-    
-    // Theme-spezifische Effekte
-    var hasTerminalEffect: Bool {
-        type == .terminal
-    }
-}
 
-// ViewModifier für zentrale Theme-Anwendung
-struct ThemeModifier: ViewModifier {
-    @EnvironmentObject var themeManager: ThemeManager
-    
-    func body(content: Content) -> some View {
-        content
-            .preferredColorScheme(themeManager.currentTheme.colorScheme)
-            .foregroundColor(themeManager.currentTheme.textPrimary)
-            .font(themeManager.currentTheme.bodyFont)
-            .background(themeManager.currentTheme.background)
-            .tint(themeManager.currentTheme.accent)
-            .conditionalTerminalEffect(isEnabled: themeManager.currentTheme.hasTerminalEffect)
-    }
-}
+    // MARK: - Theme-Konvertierung
 
-// Extension für einfache Theme-Anwendung
-extension View {
-    func themedView() -> some View {
-        modifier(ThemeModifier())
+    static func createCustomTheme(from customTheme: CustomTheme) -> Theme {
+        var theme = Theme(type: .custom)
+        theme.customPrimaryColor = customTheme.primaryColor
+        theme.customBackgroundColor = customTheme.backgroundColor
+        theme.customAccentColor = customTheme.accentColor
+        theme.customSecondaryColor = customTheme.secondaryColor
+        theme.customTextPrimaryColor = customTheme.textPrimaryColor
+        theme.customTextSecondaryColor = customTheme.textSecondaryColor
+        theme.customUseMonospacedFont = customTheme.useMonospacedFont
+        theme.customName = customTheme.name
+        return theme
+    }
+
+    // MARK: - Theme-Persistenz
+
+    func saveCustomThemesToDisk() {
+        do {
+            let data = try JSONEncoder().encode(customThemes)
+            UserDefaults.standard.set(data, forKey: "app.customThemes")
+        } catch {
+            print("❌ Error saving custom themes: \(error)")
+        }
+    }
+
+    private static func loadCustomThemesFromDisk() -> [CustomTheme] {
+        guard let data = UserDefaults.standard.data(forKey: "app.customThemes") else { return [] }
+        do {
+            return try JSONDecoder().decode([CustomTheme].self, from: data)
+        } catch {
+            print("⚠️ Error loading custom themes: \(error)")
+            return []
+        }
     }
 }
